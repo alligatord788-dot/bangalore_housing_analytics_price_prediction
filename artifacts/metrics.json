@@ -1,0 +1,20 @@
+{
+  "best_model": "Linear Regression",
+  "model_results": {
+    "Linear Regression": {
+      "r2_score": 0.8646,
+      "mae": 19.242,
+      "rmse": 40.0168
+    },
+    "Lasso Regression": {
+      "r2_score": 0.8646,
+      "mae": 19.2171,
+      "rmse": 40.0212
+    },
+    "Decision Tree": {
+      "r2_score": 0.7876,
+      "mae": 18.177,
+      "rmse": 50.1223
+    }
+  }
+}

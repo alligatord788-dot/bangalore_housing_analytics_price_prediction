@@ -1,7 +1,6 @@
 # %% [markdown]
 # # Bangalore Housing Analytics & Price Prediction
-#
-# End-to-end Kaggle workflow: load data, clean features, remove outliers, train regression models, compare metrics, save artifacts, create predictions, and build dashboard-style analytics.
+# ### End-to-end Kaggle workflow: load data, clean features, remove outliers, train regression models, compare metrics, save artifacts, create predictions, and build dashboard-style analytics.
 
 # %%
 import json
@@ -17,9 +16,8 @@ from sklearn.tree import DecisionTreeRegressor
 
 
 # %% [markdown]
-# ## 1. Find And Load Dataset
-#
-# Load the uploaded Kaggle CSV directly so we can inspect the raw housing records with `df.head()`.
+# # 1. Find And Load Dataset
+# ### Load the uploaded Kaggle CSV directly so we can inspect the raw housing records with `df.head()`.
 
 # %%
 DATA_PATH = "/kaggle/input/datasets/alligatordx/bengaluru-house-data/Bengaluru_House_Data.csv"
@@ -28,9 +26,8 @@ df.head()
 
 
 # %% [markdown]
-# ## 2. Basic Data Exploration
-#
-# Check shape, columns, data types, missing values, and summary statistics before cleaning. This tells us which columns need conversion, deletion, or imputation.
+# # 2. Basic Data Exploration
+# ### Check shape, columns, data types, missing values, and summary statistics before cleaning. This tells us which columns need conversion, deletion, or imputation.
 
 # %%
 print("Shape:", df.shape)
@@ -50,9 +47,8 @@ df.describe()
 
 
 # %% [markdown]
-# ## 3. Drop Less Useful Columns
-#
-# Drop `area_type`, `availability`, `society`, and `balcony` because this beginner model focuses on core numeric/location features. `society` has many missing values, while availability and area type add extra categorical complexity.
+# # 3. Drop Less Useful Columns
+# ### Drop `area_type`, `availability`, `society`, and `balcony` because this beginner model focuses on core numeric/location features. `society` has many missing values, while availability and area type add extra categorical complexity.
 
 # %%
 df1 = df.drop(["area_type", "availability", "society", "balcony"], axis=1)
@@ -60,8 +56,8 @@ df1.head()
 
 
 # %% [markdown]
-# ## 4. Remove Missing Values
-# Remove rows with missing important values because the remaining missing count is small after dropping weak columns, and regression models cannot train directly on NaN values.
+# # 4. Remove Missing Values
+# ### Remove rows with missing important values because the remaining missing count is small after dropping weak columns, and regression models cannot train directly on NaN values.
 
 # %%
 print("Before dropping missing values:", df1.shape)
@@ -71,9 +67,8 @@ print(df2.isna().sum())
 
 
 # %% [markdown]
-# ## 5. Convert Size Column Into BHK
-#
-# Convert text values like `2 BHK` and `4 Bedroom` into a numeric `bhk` column because ML models need numerical inputs.
+# # 5. Convert Size Column Into BHK
+# ### Convert text values like `2 BHK` and `4 Bedroom` into a numeric `bhk` column because ML models need numerical inputs.
 
 # %%
 df2 = df2.copy()
@@ -82,9 +77,8 @@ df2[["size", "bhk"]].head()
 
 
 # %% [markdown]
-# ## 6. Clean Total Square Feet
-#
-# Convert `total_sqft` into a number. Simple values stay as floats, ranges like `1200 - 1500` become their average, and invalid unit-based values are removed because regression needs one numeric sqft value.
+# # 6. Clean Total Square Feet
+# ### Convert `total_sqft` into a number. Simple values stay as floats, ranges like `1200 - 1500` become their average, and invalid unit-based values are removed because regression needs one numeric sqft value.
 
 # %%
 def convert_sqft_to_number(value):
@@ -113,9 +107,8 @@ df3.head()
 
 
 # %% [markdown]
-# ## 7. Create Price Per Square Feet
-#
-# Create `price_per_sqft = price * 100000 / total_sqft`. We use it mainly for outlier detection because prices are easier to compare after normalizing by property size.
+# # 7. Create Price Per Square Feet
+# ### Create `price_per_sqft = price * 100000 / total_sqft`. We use it mainly for outlier detection because prices are easier to compare after normalizing by property size.
 
 # %%
 df4 = df3.copy()
@@ -124,9 +117,8 @@ df4.head()
 
 
 # %% [markdown]
-# ## 8. Handle Location Column
-#
-# Strip extra spaces and group rare locations as `other`. This reduces one-hot encoded columns and avoids overfitting to locations with very few examples.
+# # 8. Handle Location Column
+# ### Strip extra spaces and group rare locations as `other`. This reduces one-hot encoded columns and avoids overfitting to locations with very few examples.
 
 # %%
 df4["location"] = df4["location"].apply(lambda x: str(x).strip())
@@ -143,9 +135,8 @@ print("Number of unique locations after grouping:", df4["location"].nunique())
 
 
 # %% [markdown]
-# ## 9. Remove Unrealistic Sqft Per BHK Values
-#
-# Remove records where `total_sqft / bhk < 300` because very small area per bedroom is usually unrealistic or noisy for house-price modeling.
+# # 9. Remove Unrealistic Sqft Per BHK Values
+# ### Remove records where `total_sqft / bhk < 300` because very small area per bedroom is usually unrealistic or noisy for house-price modeling.
 
 # %%
 print("Before removing sqft/BHK outliers:", df4.shape)
@@ -156,9 +147,8 @@ print("After removing sqft/BHK outliers:", df5.shape)
 
 
 # %% [markdown]
-# ## 10. Remove Price Per Sqft Outliers
-#
-# For each location, keep homes within one standard deviation of that location's average `price_per_sqft`. This removes unusually cheap/costly entries that can distort the regression line.
+# # 10. Remove Price Per Sqft Outliers
+# ### For each location, keep homes within one standard deviation of that location's average `price_per_sqft`. This removes unusually cheap/costly entries that can distort the regression line.
 
 # %%
 def remove_price_per_sqft_outliers(data):
@@ -182,9 +172,8 @@ print("After price_per_sqft outlier removal:", df6.shape)
 
 
 # %% [markdown]
-# ## 11. Remove BHK Outliers
-#
-# Within the same location, remove cases where a larger BHK has lower `price_per_sqft` than the smaller BHK average. This catches noisy listings and makes location-wise pricing more consistent.
+# # 11. Remove BHK Outliers
+# ### Within the same location, remove cases where a larger BHK has lower `price_per_sqft` than the smaller BHK average. This catches noisy listings and makes location-wise pricing more consistent.
 
 # %%
 def remove_bhk_outliers(data):
@@ -216,9 +205,8 @@ print("After BHK outlier removal:", df7.shape)
 
 
 # %% [markdown]
-# ## 12. Create Final Clean Dataset
-#
-# Drop helper columns used only for cleaning (`size`, `price_per_sqft`) so the final model trains on clean prediction features.
+# # 12. Create Final Clean Dataset
+# ### Drop helper columns used only for cleaning (`size`, `price_per_sqft`) so the final model trains on clean prediction features.
 
 # %%
 df8 = df7.drop(["size", "price_per_sqft"], axis=1)
@@ -231,9 +219,8 @@ print(df8.columns.tolist())
 
 
 # %% [markdown]
-# ## 13. One-Hot Encode Location
-#
-# Convert text locations into numeric one-hot columns because Scikit-learn regression models cannot use raw strings directly.
+# # 13. One-Hot Encode Location
+# ### Convert text locations into numeric one-hot columns because Scikit-learn regression models cannot use raw strings directly.
 
 # %%
 location_dummies = pd.get_dummies(df8["location"], dtype=int)
@@ -247,8 +234,8 @@ X.head()
 
 
 # %% [markdown]
-# ## 14. Train-Test Split
-# Split data into training and testing sets so the model is evaluated on unseen records instead of the same data used for fitting.
+# # 14. Train-Test Split
+# ### Split data into training and testing sets so the model is evaluated on unseen records instead of the same data used for fitting.
 
 # %%
 X_train, X_test, y_train, y_test = train_test_split(
@@ -260,9 +247,8 @@ print("Testing rows:", X_test.shape[0])
 
 
 # %% [markdown]
-# ## 15. Train And Compare Models
-#
-# Train and compare Linear Regression, Lasso Regression, and Decision Tree Regressor. Comparing models shows whether a simple linear approach is enough or a non-linear tree helps.
+# # 15. Train And Compare Models
+# ### Train and compare Linear Regression, Lasso Regression, and Decision Tree Regressor. Comparing models shows whether a simple linear approach is enough or a non-linear tree helps.
 
 # %%
 def evaluate_model(model, X_test, y_test):
@@ -299,8 +285,8 @@ results_df
 
 
 # %% [markdown]
-# ## 16. Select Best Model
-# Select the model with the highest R2 score on the test set and use it for prediction/artifact saving.
+# # 16. Select Best Model
+# ### Select the model with the highest R2 score on the test set and use it for prediction/artifact saving.
 
 # %%
 best_model_name = max(results, key=lambda name: results[name]["r2_score"])
@@ -311,9 +297,8 @@ print("Best model metrics:", results[best_model_name])
 
 
 # %% [markdown]
-# ## 17. Save Model And Columns
-#
-# Save the trained model, column order, metrics, and cleaned CSV to `/kaggle/working/`. We need columns because prediction input must match the exact training feature order.
+# # 17. Save Model And Columns
+# ### Save the trained model, column order, metrics, and cleaned CSV to `/kaggle/working/`. We need columns because prediction input must match the exact training feature order.
 
 # %%
 OUTPUT_DIR = Path("/kaggle/working/house_price_artifacts")
@@ -347,9 +332,8 @@ print(CLEANED_DATA_PATH)
 
 
 # %% [markdown]
-# ## 18. Create Prediction Function
-#
-# Build a reusable prediction function that converts user input into the same one-hot encoded format used during training and returns price in lakhs.
+# # 18. Create Prediction Function
+# ### Build a reusable prediction function that converts user input into the same one-hot encoded format used during training and returns price in lakhs.
 
 # %%
 def predict_price(location, sqft, bath, bhk):
@@ -369,9 +353,8 @@ def predict_price(location, sqft, bath, bhk):
 
 
 # %% [markdown]
-# ## 19. Test Prediction
-#
-# Test the prediction function with one sample property. Change these values to simulate different user inputs.
+# # 19. Test Prediction
+# ### Test the prediction function with one sample property. Change these values to simulate different user inputs.
 
 # %%
 location = "1st Phase JP Nagar"
@@ -384,9 +367,8 @@ print(f"Predicted price: {predicted_price} lakhs")
 
 
 # %% [markdown]
-# ## 20. Check Available Locations
-#
-# List valid location columns so we know what location names can be passed to `predict_price()`.
+# # 20. Check Available Locations
+# ### List valid location columns so we know what location names can be passed to `predict_price()`.
 
 # %%
 locations = sorted([column for column in X.columns if column not in ["total_sqft", "bath", "bhk"]])
@@ -394,15 +376,13 @@ locations[:30]
 
 
 # %% [markdown]
-# ## 21. Interview Summary
-#
-# Interview summary: I built a Bangalore housing analytics and price prediction model on Kaggle by cleaning raw housing data, engineering BHK/sqft/location features, removing outliers, comparing regression models with R2/MAE/RMSE, saving artifacts, and creating a prediction function.
+# # 21. Interview Summary
+# ### Interview summary: I built a Bangalore housing analytics and price prediction model on Kaggle by cleaning raw housing data, engineering BHK/sqft/location features, removing outliers, comparing regression models with R2/MAE/RMSE, saving artifacts, and creating a prediction function.
 
 
 # %% [markdown]
-# ## 22. Dashboard KPIs
-#
-# Create dashboard KPIs inside Kaggle. These summarize dataset size, average price, average price per sqft, and best model performance.
+# # 22. Dashboard KPIs
+# ### Create dashboard KPIs inside Kaggle. These summarize dataset size, average price, average price per sqft, and best model performance.
 
 # %%
 dashboard_df = df8.copy()
@@ -438,9 +418,8 @@ dashboard_kpis
 
 
 # %% [markdown]
-# ## 23. Plotly Dashboard Charts
-#
-# Build inline Plotly charts for model comparison, location pricing, BHK trends, sqft-price relation, and affordability segments. This recreates the dashboard inside the notebook.
+# # 23. Plotly Dashboard Charts
+# ### Build inline Plotly charts for model comparison, location pricing, BHK trends, sqft-price relation, and affordability segments. This recreates the dashboard inside the notebook.
 
 # %%
 import plotly.express as px
@@ -545,8 +524,8 @@ fig_segment.show()
 
 
 # %% [markdown]
-# ## 24. Business Insights From The Dashboard
-# Extract simple business insights from the dashboard, such as premium locations, common BHK type, and affordability distribution.
+# # 24. Business Insights From The Dashboard
+# ### Extract simple business insights from the dashboard, such as premium locations, common BHK type, and affordability distribution.
 
 # %%
 top_location = location_summary.iloc[0]
@@ -565,9 +544,8 @@ print(f"4. Price per sqft helps compare value across locations with different pr
 
 
 # %% [markdown]
-# ## 25. Real-Time Prediction Cell
-#
-# Simulate the web-app prediction form inside Kaggle. Edit the input values and rerun the cell to get a new predicted price.
+# # 25. Real-Time Prediction Cell
+# ### Simulate the web-app prediction form inside Kaggle. Edit the input values and rerun the cell to get a new predicted price.
 
 # %%
 input_location = "1st Phase JP Nagar"
@@ -588,9 +566,8 @@ print(f"Predicted Price: {predicted_price} lakhs")
 
 
 # %% [markdown]
-# ## 26. Save Dashboard As HTML
-#
-# Save all Plotly charts into one downloadable HTML dashboard file in `/kaggle/working/`.
+# # 26. Save Dashboard As HTML
+# ### Save all Plotly charts into one downloadable HTML dashboard file in `/kaggle/working/`.
 
 # %%
 dashboard_html_path = Path("/kaggle/working/bangalore_housing_dashboard.html")
@@ -618,9 +595,8 @@ print("Saved dashboard HTML to:", dashboard_html_path)
 
 
 # %% [markdown]
-# ## 27. Save Streamlit App File For Download
-#
-# Save a Streamlit app file for download. Kaggle shows notebook outputs, while the saved app can be run locally with `python -m streamlit run dashboard_app.py`.
+# # 27. Save Streamlit App File For Download
+# ### Save a Streamlit app file for download. Kaggle shows notebook outputs, while the saved app can be run locally with `python -m streamlit run dashboard_app.py`.
 
 # %%
 streamlit_app_code = r'''
@@ -720,8 +696,8 @@ print("Saved Streamlit app file to:", streamlit_app_path)
 
 
 # %% [markdown]
-# ## 28. Copy Required App Artifacts To Kaggle Working Folder
-# Copy model artifacts beside the generated Streamlit app so the downloaded app has the files it needs for prediction.
+# # 28. Copy Required App Artifacts To Kaggle Working Folder
+# ### Copy model artifacts beside the generated Streamlit app so the downloaded app has the files it needs for prediction.
 
 # %%
 for source_path in [MODEL_PATH, COLUMNS_PATH, METRICS_PATH, CLEANED_DATA_PATH]:
@@ -731,8 +707,8 @@ for source_path in [MODEL_PATH, COLUMNS_PATH, METRICS_PATH, CLEANED_DATA_PATH]:
 
 
 # %% [markdown]
-# ## 29. Final Kaggle Output Files
-# Print the final output paths so they are easy to find and download from Kaggle.
+# # 29. Final Kaggle Output Files
+# ### Print the final output paths so they are easy to find and download from Kaggle.
 
 # %%
 print("Kaggle outputs created:")

@@ -424,6 +424,13 @@ dashboard_kpis
 # %%
 import plotly.express as px
 import plotly.io as pio
+from IPython.display import HTML, display
+
+
+def display_plotly(fig):
+    """Display Plotly charts inside Kaggle when fig.show() gives blank output."""
+    html = fig.to_html(full_html=False, include_plotlyjs=True)
+    display(HTML(html))
 
 
 # %%
@@ -438,7 +445,7 @@ fig_model = px.bar(
     text="r2_score",
     title="Model Comparison by R2 Score",
 )
-fig_model.show()
+display_plotly(fig_model)
 
 
 # %%
@@ -466,7 +473,7 @@ fig_location = px.bar(
         "avg_price_per_sqft": "Average Price / Sqft",
     },
 )
-fig_location.show()
+display_plotly(fig_location)
 
 
 # %%
@@ -485,7 +492,7 @@ fig_bhk = px.bar(
     title="Average Price by BHK",
     labels={"bhk": "BHK", "avg_price": "Average Price (lakhs)"},
 )
-fig_bhk.show()
+display_plotly(fig_bhk)
 
 
 # %%
@@ -498,7 +505,7 @@ fig_scatter = px.scatter(
     title="Price vs Total Square Feet",
     labels={"total_sqft": "Total Sqft", "price": "Price (lakhs)", "bhk": "BHK"},
 )
-fig_scatter.show()
+display_plotly(fig_scatter)
 
 
 # %%
@@ -520,7 +527,7 @@ fig_segment = px.pie(
     values="count",
     title="Affordability Segments",
 )
-fig_segment.show()
+display_plotly(fig_segment)
 
 
 # %% [markdown]

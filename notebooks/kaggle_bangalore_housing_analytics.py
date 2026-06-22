@@ -425,16 +425,6 @@ dashboard_kpis
 import plotly.express as px
 import plotly.io as pio
 
-pio.renderers.default = "kaggle"
-
-
-def show_chart(fig):
-    """Display Plotly charts reliably inside Kaggle notebooks."""
-    try:
-        fig.show(renderer="kaggle")
-    except ValueError:
-        fig.show(renderer="iframe")
-
 
 # %%
 model_results_df = pd.DataFrame(results).T.reset_index()
@@ -448,7 +438,7 @@ fig_model = px.bar(
     text="r2_score",
     title="Model Comparison by R2 Score",
 )
-show_chart(fig_model)
+fig_model.show()
 
 
 # %%
@@ -476,7 +466,7 @@ fig_location = px.bar(
         "avg_price_per_sqft": "Average Price / Sqft",
     },
 )
-show_chart(fig_location)
+fig_location.show()
 
 
 # %%
@@ -495,12 +485,12 @@ fig_bhk = px.bar(
     title="Average Price by BHK",
     labels={"bhk": "BHK", "avg_price": "Average Price (lakhs)"},
 )
-show_chart(fig_bhk)
+fig_bhk.show()
 
 
 # %%
 fig_scatter = px.scatter(
-    dashboard_df.sample(min(1000, dashboard_df.shape[0]), random_state=42),
+    dashboard_df.sample(min(3000, dashboard_df.shape[0]), random_state=42),
     x="total_sqft",
     y="price",
     color="bhk",
@@ -508,7 +498,7 @@ fig_scatter = px.scatter(
     title="Price vs Total Square Feet",
     labels={"total_sqft": "Total Sqft", "price": "Price (lakhs)", "bhk": "BHK"},
 )
-show_chart(fig_scatter)
+fig_scatter.show()
 
 
 # %%
@@ -530,7 +520,7 @@ fig_segment = px.pie(
     values="count",
     title="Affordability Segments",
 )
-show_chart(fig_segment)
+fig_segment.show()
 
 
 # %% [markdown]

@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Bangalore Housing Analytics & Price Prediction
 #
-# This notebook builds a simple CampusX-style machine learning project:
+# This notebook builds a simple machine learning project:
 #
 # - Load Bangalore housing data
 # - Clean messy columns
@@ -477,3 +477,363 @@ locations[:30]
 # created price per square feet for outlier detection, grouped rare locations as `other`,
 # one-hot encoded location, trained multiple regression models, compared them using R2,
 # MAE, and RMSE, saved the best model, and created a prediction function for new inputs.
+
+
+# %% [markdown]
+# ## 22. Dashboard KPIs
+#
+# This section recreates the Streamlit dashboard logic inside Kaggle notebook cells.
+# Kaggle will show the charts inline instead of opening a separate localhost website.
+
+# %%
+dashboard_df = df8.copy()
+dashboard_df["price_per_sqft"] = (dashboard_df["price"] * 100000) / dashboard_df["total_sqft"]
+
+total_raw_records = df.shape[0]
+total_clean_records = dashboard_df.shape[0]
+average_price = dashboard_df["price"].mean()
+average_price_per_sqft = dashboard_df["price_per_sqft"].mean()
+
+dashboard_kpis = pd.DataFrame(
+    {
+        "Metric": [
+            "Raw Records",
+            "Cleaned Records",
+            "Average Price",
+            "Average Price / Sqft",
+            "Best Model",
+            "Best R2 Score",
+        ],
+        "Value": [
+            f"{total_raw_records:,}",
+            f"{total_clean_records:,}",
+            f"{average_price:.2f} lakhs",
+            f"Rs. {average_price_per_sqft:.0f}",
+            best_model_name,
+            results[best_model_name]["r2_score"],
+        ],
+    }
+)
+
+dashboard_kpis
+
+
+# %% [markdown]
+# ## 23. Plotly Dashboard Charts
+#
+# These charts cover:
+#
+# - Model comparison
+# - Location-wise pricing
+# - BHK trends
+# - Price vs square feet
+# - Affordability segments
+
+# %%
+import plotly.express as px
+import plotly.io as pio
+
+
+# %%
+model_results_df = pd.DataFrame(results).T.reset_index()
+model_results_df = model_results_df.rename(columns={"index": "model"})
+
+fig_model = px.bar(
+    model_results_df,
+    x="model",
+    y="r2_score",
+    color="model",
+    text="r2_score",
+    title="Model Comparison by R2 Score",
+)
+fig_model.show()
+
+
+# %%
+location_summary = (
+    dashboard_df.groupby("location")
+    .agg(
+        avg_price=("price", "mean"),
+        avg_price_per_sqft=("price_per_sqft", "mean"),
+        listing_count=("price", "count"),
+    )
+    .reset_index()
+    .sort_values("avg_price", ascending=False)
+    .head(15)
+)
+
+fig_location = px.bar(
+    location_summary,
+    x="location",
+    y="avg_price",
+    color="avg_price_per_sqft",
+    title="Top 15 Locations by Average Price",
+    labels={
+        "location": "Location",
+        "avg_price": "Average Price (lakhs)",
+        "avg_price_per_sqft": "Average Price / Sqft",
+    },
+)
+fig_location.show()
+
+
+# %%
+bhk_summary = (
+    dashboard_df.groupby("bhk")
+    .agg(avg_price=("price", "mean"), listing_count=("price", "count"))
+    .reset_index()
+    .sort_values("bhk")
+)
+
+fig_bhk = px.bar(
+    bhk_summary,
+    x="bhk",
+    y="avg_price",
+    text="listing_count",
+    title="Average Price by BHK",
+    labels={"bhk": "BHK", "avg_price": "Average Price (lakhs)"},
+)
+fig_bhk.show()
+
+
+# %%
+fig_scatter = px.scatter(
+    dashboard_df.sample(min(3000, dashboard_df.shape[0]), random_state=42),
+    x="total_sqft",
+    y="price",
+    color="bhk",
+    hover_data=["location", "bath"],
+    title="Price vs Total Square Feet",
+    labels={"total_sqft": "Total Sqft", "price": "Price (lakhs)", "bhk": "BHK"},
+)
+fig_scatter.show()
+
+
+# %%
+def get_price_segment(price):
+    if price < 50:
+        return "Affordable"
+    if price < 120:
+        return "Mid-range"
+    return "Premium"
+
+
+dashboard_df["price_segment"] = dashboard_df["price"].apply(get_price_segment)
+segment_counts = dashboard_df["price_segment"].value_counts().reset_index()
+segment_counts.columns = ["segment", "count"]
+
+fig_segment = px.pie(
+    segment_counts,
+    names="segment",
+    values="count",
+    title="Affordability Segments",
+)
+fig_segment.show()
+
+
+# %% [markdown]
+# ## 24. Business Insights From The Dashboard
+
+# %%
+top_location = location_summary.iloc[0]
+most_common_bhk = dashboard_df["bhk"].mode().iloc[0]
+premium_share = (
+    dashboard_df[dashboard_df["price_segment"] == "Premium"].shape[0]
+    / dashboard_df.shape[0]
+) * 100
+
+print("Business Insights")
+print("-----------------")
+print(f"1. {top_location['location']} has the highest average price among the top locations shown.")
+print(f"2. {most_common_bhk} BHK is the most common property configuration in the cleaned dataset.")
+print(f"3. Premium properties form {premium_share:.2f}% of the cleaned dataset.")
+print(f"4. Price per sqft helps compare value across locations with different property sizes.")
+
+
+# %% [markdown]
+# ## 25. Real-Time Prediction Cell
+#
+# Change these values and rerun this cell to simulate the web-app prediction form inside Kaggle.
+
+# %%
+input_location = "1st Phase JP Nagar"
+input_sqft = 1000
+input_bath = 2
+input_bhk = 2
+
+predicted_price = predict_price(input_location, input_sqft, input_bath, input_bhk)
+print("Input")
+print("-----")
+print("Location:", input_location)
+print("Total Sqft:", input_sqft)
+print("Bathrooms:", input_bath)
+print("BHK:", input_bhk)
+print("\nPrediction")
+print("----------")
+print(f"Predicted Price: {predicted_price} lakhs")
+
+
+# %% [markdown]
+# ## 26. Save Dashboard As HTML
+#
+# Kaggle notebook charts are inline, but this cell also saves the dashboard charts
+# into a single HTML file in `/kaggle/working/`.
+
+# %%
+dashboard_html_path = Path("/kaggle/working/bangalore_housing_dashboard.html")
+
+html_parts = [
+    "<html><head><title>Bangalore Housing Analytics Dashboard</title></head><body>",
+    "<h1>Bangalore Housing Analytics & Price Prediction</h1>",
+    "<h2>KPIs</h2>",
+    dashboard_kpis.to_html(index=False),
+    "<h2>Model Comparison</h2>",
+    pio.to_html(fig_model, full_html=False, include_plotlyjs="cdn"),
+    "<h2>Top Locations by Average Price</h2>",
+    pio.to_html(fig_location, full_html=False, include_plotlyjs=False),
+    "<h2>Average Price by BHK</h2>",
+    pio.to_html(fig_bhk, full_html=False, include_plotlyjs=False),
+    "<h2>Price vs Total Square Feet</h2>",
+    pio.to_html(fig_scatter, full_html=False, include_plotlyjs=False),
+    "<h2>Affordability Segments</h2>",
+    pio.to_html(fig_segment, full_html=False, include_plotlyjs=False),
+    "</body></html>",
+]
+
+dashboard_html_path.write_text("\n".join(html_parts), encoding="utf-8")
+print("Saved dashboard HTML to:", dashboard_html_path)
+
+
+# %% [markdown]
+# ## 27. Save Streamlit App File For Download
+#
+# Kaggle can save the Streamlit app file, but it usually cannot host a persistent
+# public Streamlit website from a notebook in the same way your laptop can.
+# Download this file from Kaggle output and run it locally with:
+#
+# ```bash
+# python -m streamlit run dashboard_app.py
+# ```
+
+# %%
+streamlit_app_code = r'''
+import json
+import pickle
+from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+
+
+PROJECT_DIR = Path(__file__).resolve().parent
+CLEAN_DATA_PATH = PROJECT_DIR / "cleaned_bengaluru_house_data.csv"
+MODEL_PATH = PROJECT_DIR / "model.pkl"
+COLUMNS_PATH = PROJECT_DIR / "columns.json"
+METRICS_PATH = PROJECT_DIR / "metrics.json"
+
+
+st.set_page_config(page_title="Bangalore Housing Analytics", layout="wide")
+
+
+@st.cache_data
+def load_data():
+    data = pd.read_csv(CLEAN_DATA_PATH)
+    data["price_per_sqft"] = (data["price"] * 100000) / data["total_sqft"]
+    return data
+
+
+@st.cache_resource
+def load_model():
+    with open(MODEL_PATH, "rb") as file:
+        model = pickle.load(file)
+    with open(COLUMNS_PATH, "r") as file:
+        columns = json.load(file)["columns"]
+    return model, columns
+
+
+def predict_price(location, sqft, bath, bhk, model, columns):
+    input_data = {column: 0 for column in columns}
+    input_data["total_sqft"] = sqft
+    input_data["bath"] = bath
+    input_data["bhk"] = bhk
+    if location in input_data:
+        input_data[location] = 1
+    elif "other" in input_data:
+        input_data["other"] = 1
+    input_df = pd.DataFrame([input_data], columns=columns)
+    return round(float(model.predict(input_df)[0]), 2)
+
+
+df = load_data()
+model, columns = load_model()
+
+st.title("Bangalore Housing Analytics & Price Prediction")
+st.write("Dashboard generated from the Kaggle-trained model artifacts.")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Cleaned Records", f"{df.shape[0]:,}")
+col2.metric("Average Price", f"{df['price'].mean():.2f} lakhs")
+col3.metric("Avg Price / Sqft", f"Rs. {df['price_per_sqft'].mean():.0f}")
+
+location_summary = (
+    df.groupby("location")
+    .agg(avg_price=("price", "mean"), avg_price_per_sqft=("price_per_sqft", "mean"))
+    .reset_index()
+    .sort_values("avg_price", ascending=False)
+    .head(15)
+)
+
+st.plotly_chart(
+    px.bar(location_summary, x="location", y="avg_price", color="avg_price_per_sqft",
+           title="Top Locations by Average Price"),
+    use_container_width=True,
+)
+
+bhk_summary = df.groupby("bhk")["price"].mean().reset_index()
+st.plotly_chart(
+    px.bar(bhk_summary, x="bhk", y="price", title="Average Price by BHK"),
+    use_container_width=True,
+)
+
+st.subheader("Predict Price")
+location = st.selectbox("Location", sorted(df["location"].unique()))
+sqft = st.number_input("Total Sqft", min_value=100.0, value=1000.0)
+bath = st.number_input("Bathrooms", min_value=1, value=2)
+bhk = st.number_input("BHK", min_value=1, value=2)
+
+if st.button("Predict"):
+    prediction = predict_price(location, sqft, bath, bhk, model, columns)
+    st.success(f"Predicted Price: {prediction} lakhs")
+'''
+
+streamlit_app_path = Path("/kaggle/working/dashboard_app.py")
+streamlit_app_path.write_text(streamlit_app_code, encoding="utf-8")
+print("Saved Streamlit app file to:", streamlit_app_path)
+
+
+# %% [markdown]
+# ## 28. Copy Required App Artifacts To Kaggle Working Folder
+
+# %%
+for source_path in [MODEL_PATH, COLUMNS_PATH, METRICS_PATH, CLEANED_DATA_PATH]:
+    target_path = Path("/kaggle/working") / source_path.name
+    target_path.write_bytes(source_path.read_bytes())
+    print("Copied:", target_path)
+
+
+# %% [markdown]
+# ## 29. Final Kaggle Output Files
+
+# %%
+print("Kaggle outputs created:")
+print("- /kaggle/working/house_price_artifacts/model.pkl")
+print("- /kaggle/working/house_price_artifacts/columns.json")
+print("- /kaggle/working/house_price_artifacts/metrics.json")
+print("- /kaggle/working/house_price_artifacts/cleaned_bengaluru_house_data.csv")
+print("- /kaggle/working/bangalore_housing_dashboard.html")
+print("- /kaggle/working/dashboard_app.py")
+print("- /kaggle/working/model.pkl")
+print("- /kaggle/working/columns.json")
+print("- /kaggle/working/metrics.json")
+print("- /kaggle/working/cleaned_bengaluru_house_data.csv")

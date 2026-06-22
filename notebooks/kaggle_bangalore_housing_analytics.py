@@ -28,28 +28,11 @@ from sklearn.tree import DecisionTreeRegressor
 # %% [markdown]
 # ## 1. Find And Load Dataset
 #
-# In Kaggle, datasets usually appear inside `/kaggle/input/`.
-# This cell searches for the CSV automatically.
-# If it fails, manually set `DATA_PATH` to your dataset path.
+# In Kaggle, the dataset path is visible in the right sidebar after adding input data.
+# For this notebook, we directly use the uploaded Bengaluru house data CSV.
 
 # %%
-possible_paths = list(Path("/kaggle/input").rglob("*.csv"))
-
-print("CSV files found:")
-for path in possible_paths:
-    print(path)
-
-DATA_PATH = None
-for path in possible_paths:
-    if "bengaluru" in path.name.lower() or "bangalore" in path.name.lower():
-        DATA_PATH = path
-        break
-
-if DATA_PATH is None and possible_paths:
-    DATA_PATH = possible_paths[0]
-
-print("\nUsing dataset:", DATA_PATH)
-
+DATA_PATH = "/kaggle/input/datasets/alligatordx/bengaluru-house-data/Bengaluru_House_Data.csv"
 df = pd.read_csv(DATA_PATH)
 df.head()
 
